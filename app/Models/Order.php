@@ -7,6 +7,7 @@ use App\Enums\OrderStatus;
 use App\Support\Phone;
 use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -28,13 +29,38 @@ class Order extends Model
         'status' => 'pending',
     ];
 
+    /** Estados que cuentan como venta cobrada. */
+    public const PAID_STATUSES = [OrderStatus::Paid, OrderStatus::Delivered];
+
+    protected static function booted(): void
+    {
+        // Guarda cuándo se cobró la primera vez que pasa a Pagada o Entregada.
+        static::saving(function (Order $order) {
+            if ($order->paid_at === null && $order->isPaid()) {
+                $order->paid_at = now();
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
             'currency' => Currency::class,
             'status' => OrderStatus::class,
             'total' => 'decimal:2',
+            'paid_at' => 'datetime',
         ];
+    }
+
+    /** Órdenes cobradas: pagadas o ya entregadas. */
+    public function scopePaid(Builder $query): void
+    {
+        $query->whereIn('status', self::PAID_STATUSES);
+    }
+
+    public function isPaid(): bool
+    {
+        return in_array($this->status, self::PAID_STATUSES, true);
     }
 
     /**

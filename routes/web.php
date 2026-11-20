@@ -34,6 +34,11 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 
 Route::middleware(['auth', CheckExpiryAlerts::class])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', Admin\DashboardController::class)->name('dashboard');
+    Route::get('finanzas', Admin\FinanceController::class)->name('finances');
+    Route::resource('inversion', Admin\PurchaseController::class)
+        ->except('show')
+        ->parameters(['inversion' => 'purchase'])
+        ->names('purchases');
 
     Route::get('notificaciones', [Admin\NotificationController::class, 'index'])->name('notifications.index');
     Route::get('notificaciones/estado', [Admin\NotificationController::class, 'status'])->name('notifications.status');

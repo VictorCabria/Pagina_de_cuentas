@@ -3,6 +3,8 @@
 @php
     $nav = [
         ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'label' => 'Inicio'],
+        ['route' => 'admin.finances', 'match' => 'admin.finances', 'label' => 'Finanzas'],
+        ['route' => 'admin.purchases.index', 'match' => 'admin.purchases.*', 'label' => 'Inversión'],
         ['route' => 'admin.orders.index', 'match' => 'admin.orders.*', 'label' => 'Órdenes', 'badge' => \App\Models\Order::where('status', 'pending')->count()],
         ['route' => 'admin.subscriptions.index', 'match' => 'admin.subscriptions.*', 'label' => 'Cuentas', 'badge' => \App\Models\Subscription::missingAccount()->count()],
         ['route' => 'admin.services.index', 'match' => ['admin.services.*', 'admin.plans.*'], 'label' => 'Servicios'],

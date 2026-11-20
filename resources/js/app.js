@@ -521,3 +521,41 @@ if (bell) {
     setInterval(poll, 30000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
 }
+
+// Gráfica de finanzas: línea guía y detalle del mes al pasar el mouse (o tocar).
+document.querySelectorAll('[data-finance-chart]').forEach((chart) => {
+    const svg = chart.querySelector('svg');
+    const crosshair = chart.querySelector('[data-crosshair]');
+    const tooltip = chart.querySelector('[data-tooltip]');
+    const field = (name) => tooltip.querySelector(`[data-tooltip-${name}]`);
+
+    const show = (point) => {
+        const x = Number(point.dataset.x);
+        crosshair.setAttribute('x1', x);
+        crosshair.setAttribute('x2', x);
+        crosshair.classList.remove('hidden');
+
+        field('month').textContent = point.dataset.month;
+        field('income').textContent = point.dataset.income;
+        field('investment').textContent = point.dataset.investment;
+        field('profit').textContent = point.dataset.profit;
+        field('profit-label').textContent = point.dataset.loss === '1' ? 'Pérdida' : 'Ganancia';
+        tooltip.classList.remove('hidden');
+
+        // Pone el cuadro al lado del mes, sin salirse de la tarjeta.
+        const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+        const left = x * scale + 12;
+        const fitsRight = left + tooltip.offsetWidth <= svg.getBoundingClientRect().width;
+        tooltip.style.left = `${fitsRight ? left : x * scale - tooltip.offsetWidth - 12}px`;
+    };
+
+    const hide = () => {
+        crosshair.classList.add('hidden');
+        tooltip.classList.add('hidden');
+    };
+
+    chart.querySelectorAll('[data-point]').forEach((point) => {
+        point.addEventListener('pointerenter', () => show(point));
+    });
+    svg.addEventListener('pointerleave', hide);
+});

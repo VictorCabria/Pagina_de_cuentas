@@ -44,7 +44,7 @@ class OrderController extends Controller
 
         $message = "Orden {$order->number()}: {$order->status->label()}.";
 
-        if (in_array($order->status, [OrderStatus::Paid, OrderStatus::Delivered], true)) {
+        if ($order->isPaid()) {
             $created = $order->createSubscriptions();
             if ($created > 0) {
                 $message .= " Se agregaron {$created} ".($created === 1 ? 'cuenta' : 'cuentas').' en «Cuentas»: falta ponerles el correo.';
