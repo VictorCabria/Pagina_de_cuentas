@@ -8,9 +8,11 @@ use App\Models\Service;
 use App\Models\Setting;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Support\SubscriptionsSpreadsheet;
 use Database\Seeders\CatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
 class SubscriptionTest extends TestCase
@@ -167,5 +169,61 @@ class SubscriptionTest extends TestCase
         auth()->logout();
 
         $this->get(route('admin.subscriptions.index'))->assertRedirect(route('login'));
+    }
+
+    public function test_export_downloads_an_excel_with_one_block_per_platform(): void
+    {
+        $this->travelTo('2026-11-18');
+        Subscription::factory()->create([
+            'service_id' => $this->service('netflix')->id,
+            'customer_name' => 'Celianeth',
+            'customer_phone' => '50764725095',
+            'account_email' => 'cuenta@example.com',
+            'account_password' => 'clave15%',
+            'profile_name' => 'PIXEL',
+            'pin' => '0505',
+            'starts_on' => '2026-03-01',
+            'expires_on' => '2027-03-01',
+            'notes' => 'Pago 2$',
+        ]);
+        Subscription::factory()->create(['service_id' => $this->service('spotify')->id, 'customer_name' => 'Patri', 'profile_name' => null]);
+
+        $response = $this->get(route('admin.subscriptions.export'))
+            ->assertOk()
+            ->assertDownload('cuentas-2026-11-18.xlsx');
+
+        $rows = $this->readSpreadsheet($response->streamedContent());
+
+        $this->assertSame('CUENTA DE NETFLIX', $rows[3]['C']);
+        $this->assertSame(SubscriptionsSpreadsheet::HEADINGS, array_values(array_slice($rows[4], 2)));
+        $this->assertSame(
+            ['+507 6472-5095', 'Celianeth (PIXEL)', 'cuenta@example.com', 'clave15%', '0505', '1 de marzo de 2026', '1 de marzo de 2027', 'Pago 2$'],
+            array_values(array_slice($rows[5], 2)),
+        );
+        $this->assertNull($rows[6]['C']);
+        $this->assertSame('CUENTA DE SPOTIFY', $rows[7]['C']);
+        $this->assertSame('Patri', $rows[9]['D']);
+    }
+
+    public function test_guests_cannot_export_accounts(): void
+    {
+        auth()->logout();
+
+        $this->get(route('admin.subscriptions.export'))->assertRedirect(route('login'));
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function readSpreadsheet(string $contents): array
+    {
+        $path = tempnam(sys_get_temp_dir(), 'cuentas');
+        file_put_contents($path, $contents);
+
+        try {
+            return IOFactory::load($path)->getActiveSheet()->toArray(null, false, false, true);
+        } finally {
+            unlink($path);
+        }
     }
 }

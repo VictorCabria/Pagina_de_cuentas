@@ -1,5 +1,8 @@
 <x-layouts.admin title="Cuentas">
     <x-slot:actions>
+        @if ($counts['todas'] > 0)
+            <a href="{{ route('admin.subscriptions.export') }}" class="btn-ghost">Exportar a Excel</a>
+        @endif
         <a href="{{ route('admin.subscriptions.create', array_filter(['servicio' => $serviceId])) }}" class="btn-primary">+ Agregar cuenta</a>
     </x-slot:actions>
 

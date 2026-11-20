@@ -1,0 +1,12 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+        - routes/
+        - database/
+        - config/
+
+    # Nivel 0 (más permisivo) a 10 (más estricto). Sube de uno en uno a medida que corrijas errores.
+    level: 5

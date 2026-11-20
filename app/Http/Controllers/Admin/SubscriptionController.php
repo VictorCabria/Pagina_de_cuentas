@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Models\Subscription;
 use App\Support\Phone;
+use App\Support\SubscriptionsSpreadsheet;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SubscriptionController extends Controller
 {
@@ -91,6 +94,18 @@ class SubscriptionController extends Controller
 
         return back()->with('status', "Cuenta de {$subscription->customer_name} renovada hasta el "
             .$subscription->expires_on->locale('es')->isoFormat('D [de] MMMM').'.');
+    }
+
+    /** Descarga todas las cuentas en un Excel con el formato "CUENTA DE <PLATAFORMA>". */
+    public function export(SubscriptionsSpreadsheet $spreadsheet): StreamedResponse
+    {
+        $workbook = $spreadsheet->build(Subscription::with('service')->get());
+
+        return response()->streamDownload(
+            fn () => (new Xlsx($workbook))->save('php://output'),
+            'cuentas-'.today()->toDateString().'.xlsx',
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        );
     }
 
     public function destroy(Subscription $subscription): RedirectResponse

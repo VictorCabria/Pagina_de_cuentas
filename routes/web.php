@@ -72,6 +72,7 @@ Route::middleware(['auth', CheckExpiryAlerts::class])->prefix('admin')->name('ad
     Route::patch('combos/{combo}/disponibilidad', [Admin\ComboController::class, 'toggle'])->name('combos.toggle');
     Route::resource('combos', Admin\ComboController::class)->except('show');
 
+    Route::get('cuentas/exportar', [Admin\SubscriptionController::class, 'export'])->name('subscriptions.export');
     Route::patch('cuentas/{subscription}/renovar', [Admin\SubscriptionController::class, 'renew'])->name('subscriptions.renew');
     Route::resource('cuentas', Admin\SubscriptionController::class)
         ->except('show')
