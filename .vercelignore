@@ -7,4 +7,4 @@
 /storage/framework/sessions/*
 /storage/framework/views/*
 .env
-portafolio.sql
+*.sql
