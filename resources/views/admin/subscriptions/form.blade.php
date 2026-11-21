@@ -1,7 +1,7 @@
 <x-layouts.admin :title="$subscription->exists ? 'Cuenta de '.$subscription->customer_name : 'Agregar cuenta'">
     <form method="POST"
           action="{{ $subscription->exists ? route('admin.subscriptions.update', $subscription) : route('admin.subscriptions.store') }}"
-          class="card max-w-3xl space-y-5" data-subscription-form>
+          class="card max-w-3xl space-y-5" data-subscription-form data-password-url="{{ route('admin.subscriptions.known-password') }}">
         @csrf
         @if ($subscription->exists)
             @method('PUT')

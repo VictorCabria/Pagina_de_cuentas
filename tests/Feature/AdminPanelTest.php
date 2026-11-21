@@ -30,6 +30,17 @@ class AdminPanelTest extends TestCase
         $this->get('/admin')->assertRedirect('/login');
     }
 
+    public function test_panel_pages_are_never_cached_and_cannot_be_framed(): void
+    {
+        $this->get(route('admin.dashboard'))->assertOk()
+            ->assertHeader('X-Frame-Options', 'DENY')
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('Pragma', 'no-cache')
+            ->assertHeaderMissing('ETag');
+
+        $this->assertStringContainsString('no-store', $this->get(route('admin.dashboard'))->headers->get('Cache-Control'));
+    }
+
     public function test_all_panel_pages_render(): void
     {
         $service = Service::first();

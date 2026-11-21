@@ -350,14 +350,23 @@ if (subscriptionForm) {
     const list = document.getElementById('account-emails');
 
     const fillList = () => {
-        list.replaceChildren(...Object.keys(known[service.value] ?? {}).map((value) => new Option(value, value)));
+        list.replaceChildren(...(known[service.value] ?? []).map((value) => new Option(value, value)));
     };
     service.addEventListener('change', fillList);
     fillList();
 
-    email.addEventListener('change', () => {
-        const saved = (known[service.value] ?? {})[email.value.trim()];
-        if (saved && !password.value) password.value = saved;
+    // La clave se pide al servidor solo para el correo elegido (la página no trae ninguna).
+    email.addEventListener('change', async () => {
+        const value = email.value.trim();
+        if (password.value || !(known[service.value] ?? []).includes(value)) return;
+        const url = new URL(subscriptionForm.dataset.passwordUrl);
+        url.search = new URLSearchParams({ service_id: service.value, email: value });
+        try {
+            const response = await fetch(url, { headers: { Accept: 'application/json' } });
+            if (!response.ok) return;
+            const { password: saved } = await response.json();
+            if (saved && !password.value) password.value = saved;
+        } catch { /* sin conexión: se escribe a mano */ }
     });
 
     const startsOn = subscriptionForm.elements.starts_on;

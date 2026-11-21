@@ -78,6 +78,9 @@ Route::middleware(['auth', CheckExpiryAlerts::class])->prefix('admin')->name('ad
     Route::resource('combos', Admin\ComboController::class)->except('show');
 
     Route::get('cuentas/exportar', [Admin\SubscriptionController::class, 'export'])->name('subscriptions.export');
+    Route::get('cuentas/clave', [Admin\SubscriptionController::class, 'knownPassword'])
+        ->middleware('throttle:30,1')
+        ->name('subscriptions.known-password');
     Route::patch('cuentas/{subscription}/renovar', [Admin\SubscriptionController::class, 'renew'])->name('subscriptions.renew');
     Route::resource('cuentas', Admin\SubscriptionController::class)
         ->except('show')

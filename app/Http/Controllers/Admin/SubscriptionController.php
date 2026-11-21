@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Support\Phone;
 use App\Support\SubscriptionsSpreadsheet;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -116,16 +117,38 @@ class SubscriptionController extends Controller
     }
 
     /**
+     * Clave guardada de un correo ya usado en la plataforma, para autocompletarla.
+     * Se pide de una en una: la página del formulario nunca lleva las contraseñas.
+     */
+    public function knownPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'service_id' => ['required', 'integer'],
+            'email' => ['required', 'string', 'max:255'],
+        ]);
+
+        $password = Subscription::where('service_id', $data['service_id'])
+            ->where('account_email', $data['email'])
+            ->whereNotNull('account_password')
+            ->latest('updated_at')
+            ->first()
+            ?->account_password;
+
+        abort_if(blank($password), 404);
+
+        return response()->json(['password' => $password]);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function formData(Subscription $subscription): array
     {
-        // Correos ya usados por plataforma, para sugerirlos y autocompletar la clave.
-        $accounts = Subscription::whereNotNull('account_email')->latest('updated_at')->get()
+        // Solo los correos ya usados por plataforma (sin claves), para sugerirlos.
+        $accounts = Subscription::whereNotNull('account_email')->latest('updated_at')
+            ->get(['service_id', 'account_email'])
             ->groupBy('service_id')
-            ->map(fn ($rows) => $rows->unique('account_email')->mapWithKeys(fn (Subscription $row) => [
-                $row->account_email => $row->account_password,
-            ]));
+            ->map(fn ($rows) => $rows->pluck('account_email')->unique()->values());
 
         return [
             'subscription' => $subscription,

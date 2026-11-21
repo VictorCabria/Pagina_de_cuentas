@@ -171,6 +171,39 @@ class SubscriptionTest extends TestCase
         $this->get(route('admin.subscriptions.index'))->assertRedirect(route('login'));
     }
 
+    public function test_form_suggests_emails_but_never_sends_passwords(): void
+    {
+        $netflix = $this->service('netflix');
+        Subscription::factory()->create([
+            'service_id' => $netflix->id, 'account_email' => 'cuenta@ejemplo.com', 'account_password' => 'Secreta123',
+        ]);
+
+        $this->get(route('admin.subscriptions.create'))->assertOk()
+            ->assertSee('cuenta@ejemplo.com')
+            ->assertDontSee('Secreta123');
+
+        $this->getJson(route('admin.subscriptions.known-password', ['service_id' => $netflix->id, 'email' => 'cuenta@ejemplo.com']))
+            ->assertOk()
+            ->assertExactJson(['password' => 'Secreta123']);
+
+        $this->getJson(route('admin.subscriptions.known-password', ['service_id' => $netflix->id, 'email' => 'otra@ejemplo.com']))
+            ->assertNotFound();
+        $this->getJson(route('admin.subscriptions.known-password', ['service_id' => $this->service('spotify')->id, 'email' => 'cuenta@ejemplo.com']))
+            ->assertNotFound();
+    }
+
+    public function test_guests_cannot_ask_for_a_saved_password(): void
+    {
+        $netflix = $this->service('netflix');
+        Subscription::factory()->create([
+            'service_id' => $netflix->id, 'account_email' => 'cuenta@ejemplo.com', 'account_password' => 'Secreta123',
+        ]);
+        auth()->logout();
+
+        $this->getJson(route('admin.subscriptions.known-password', ['service_id' => $netflix->id, 'email' => 'cuenta@ejemplo.com']))
+            ->assertUnauthorized();
+    }
+
     public function test_export_downloads_an_excel_with_one_block_per_platform(): void
     {
         $this->travelTo('2026-11-18');

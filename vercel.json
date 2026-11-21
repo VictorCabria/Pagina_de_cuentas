@@ -40,6 +40,8 @@
         "LOG_CHANNEL": "stderr",
         "CACHE_STORE": "database",
         "SESSION_DRIVER": "database",
+        "SESSION_ENCRYPT": "true",
+        "SESSION_SECURE_COOKIE": "true",
         "MEDIA_DISK": "s3",
         "MYSQL_ATTR_SSL_CA": "/etc/pki/tls/certs/ca-bundle.crt"
     },
