@@ -78,9 +78,13 @@ Route::middleware(['auth', CheckExpiryAlerts::class])->prefix('admin')->name('ad
     Route::resource('combos', Admin\ComboController::class)->except('show');
 
     Route::get('cuentas/exportar', [Admin\SubscriptionController::class, 'export'])->name('subscriptions.export');
-    Route::get('cuentas/clave', [Admin\SubscriptionController::class, 'knownPassword'])
-        ->middleware('throttle:30,1')
-        ->name('subscriptions.known-password');
+    // Datos sensibles bajo demanda (la página nunca los lleva), con límite de consultas.
+    Route::middleware('throttle:30,1')->group(function () {
+        Route::get('cuentas/clave', [Admin\SubscriptionController::class, 'knownPassword'])->name('subscriptions.known-password');
+        Route::get('cuentas/correos', [Admin\SubscriptionController::class, 'knownEmails'])->name('subscriptions.known-emails');
+        Route::get('cuentas/{subscription}/datos', [Admin\SubscriptionController::class, 'secrets'])->name('subscriptions.secrets');
+        Route::get('cuentas/{subscription}/enviar-datos', [Admin\SubscriptionController::class, 'sendCredentials'])->name('subscriptions.send-credentials');
+    });
     Route::patch('cuentas/{subscription}/renovar', [Admin\SubscriptionController::class, 'renew'])->name('subscriptions.renew');
     Route::resource('cuentas', Admin\SubscriptionController::class)
         ->except('show')

@@ -36,7 +36,6 @@
                             <th class="px-4 py-3">Fecha</th>
                             <th class="px-4 py-3">Plataforma</th>
                             <th class="px-4 py-3">Vence</th>
-                            <th class="hidden px-4 py-3 md:table-cell">Detalle</th>
                             <th class="px-4 py-3 text-right">Monto</th>
                             <th class="px-4 py-3 text-right">Acciones</th>
                         </tr>
@@ -45,7 +44,13 @@
                         @foreach ($purchases as $purchase)
                             <tr>
                                 <td class="px-4 py-3 whitespace-nowrap">{{ $purchase->purchased_on->format('d/m/Y') }}</td>
-                                <td class="px-4 py-3 font-medium text-mist-100">{{ $purchase->label() }}</td>
+                                {{-- Correos enmascarados; el detalle completo y las notas solo se ven al editar --}}
+                                <td class="px-4 py-3">
+                                    <p class="font-medium text-mist-100">{{ \App\Support\Mask::emails($purchase->label()) }}</p>
+                                    @if ($purchase->service && $purchase->description)
+                                        <p class="mt-0.5 max-w-xs truncate text-xs">{{ \App\Support\Mask::emails($purchase->description) }}</p>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3 text-xs whitespace-nowrap">
                                     @if ($purchase->expires_on)
                                         @php($daysLeft = $purchase->daysLeft())
@@ -64,12 +69,6 @@
                                         <span class="text-mist-400">—</span>
                                     @endif
                                 </td>
-                                <td class="hidden max-w-xs px-4 py-3 text-xs md:table-cell">
-                                    {{ $purchase->service ? $purchase->description : '' }}
-                                    @if ($purchase->notes)
-                                        <span class="block text-mist-400">{{ Str::limit($purchase->notes, 80) }}</span>
-                                    @endif
-                                </td>
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
                                     <span class="font-semibold text-mist-100">{{ $currency->format($finances->cost($purchase, $currency)) }}</span>
                                     @if ($purchase->currency !== $currency)
@@ -80,7 +79,7 @@
                                     <div class="flex justify-end gap-1">
                                         <a href="{{ route('admin.purchases.edit', $purchase) }}" class="btn-ghost px-2.5 py-1 text-xs">Editar</a>
                                         <form method="POST" action="{{ route('admin.purchases.destroy', $purchase) }}"
-                                              onsubmit="return confirm('¿Eliminar la compra de {{ e($purchase->label()) }}?')">
+                                              onsubmit="return confirm('¿Eliminar la compra de {{ e(\App\Support\Mask::emails($purchase->label())) }}?')">
                                             @csrf
                                             @method('DELETE')
                                             <button class="btn-ghost px-2.5 py-1 text-xs text-rose-300">Eliminar</button>
@@ -93,7 +92,6 @@
                     <tfoot class="bg-ink-900 font-semibold">
                         <tr>
                             <td class="px-4 py-3 text-mist-100" colspan="3">Total</td>
-                            <td class="hidden md:table-cell"></td>
                             <td class="px-4 py-3 text-right whitespace-nowrap text-mist-100">{{ $currency->format($total) }}</td>
                             <td></td>
                         </tr>

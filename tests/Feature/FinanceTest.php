@@ -181,6 +181,26 @@ class FinanceTest extends TestCase
         $this->assertNull($purchase->fresh()->expires_on);
     }
 
+    public function test_purchase_list_masks_emails_and_does_not_send_notes(): void
+    {
+        $service = Service::create(['name' => 'Crunchyroll']);
+        $purchase = Purchase::factory()->create([
+            'service_id' => $service->id,
+            'description' => 'fiera152022@gmail.com 4 personas',
+            'notes' => 'clave del proveedor: secreta123',
+        ]);
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('admin.purchases.index'))->assertOk()
+            ->assertSee('fi*********@gmail.com 4 personas')
+            ->assertDontSee('fiera152022')
+            ->assertDontSee('secreta123');
+
+        $this->get(route('admin.purchases.edit', $purchase))->assertOk()
+            ->assertSee('fiera152022@gmail.com')
+            ->assertSee('secreta123');
+    }
+
     public function test_purchase_duration_must_be_between_one_and_thirty_six_months(): void
     {
         $this->actingAs(User::factory()->create());

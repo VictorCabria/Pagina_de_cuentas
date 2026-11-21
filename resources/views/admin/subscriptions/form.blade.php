@@ -1,7 +1,9 @@
 <x-layouts.admin :title="$subscription->exists ? 'Cuenta de '.$subscription->customer_name : 'Agregar cuenta'">
     <form method="POST"
           action="{{ $subscription->exists ? route('admin.subscriptions.update', $subscription) : route('admin.subscriptions.store') }}"
-          class="card max-w-3xl space-y-5" data-subscription-form data-password-url="{{ route('admin.subscriptions.known-password') }}">
+          class="card max-w-3xl space-y-5" data-subscription-form
+          data-password-url="{{ route('admin.subscriptions.known-password') }}"
+          data-emails-url="{{ route('admin.subscriptions.known-emails') }}">
         @csrf
         @if ($subscription->exists)
             @method('PUT')
@@ -28,9 +30,20 @@
                          placeholder="correo@ejemplo.com" hint="Si eliges un correo que ya usaste en esta plataforma, se llena la contraseña." />
                 <datalist id="account-emails"></datalist>
             </div>
-            <x-field name="account_password" label="Contraseña" :value="$subscription->account_password" autocomplete="off" />
+            {{-- La clave y el PIN guardados no viajan en la página: se piden con "Mostrar" --}}
+            @php($hasSecrets = $subscription->exists && ($subscription->account_password || $subscription->pin))
+            <x-field name="account_password" label="Contraseña" autocomplete="off" data-secret="password"
+                     :placeholder="$subscription->exists && $subscription->account_password ? \App\Support\Mask::SECRET.' guardada' : null"
+                     :hint="$subscription->exists && $subscription->account_password ? 'Déjala vacía para no cambiarla.' : null" />
             <x-field name="profile_name" label="Perfil" :value="$subscription->profile_name" maxlength="40" placeholder="Ej. Perfil 3, PIXEL" />
-            <x-field name="pin" label="PIN del perfil" :value="$subscription->pin" maxlength="20" placeholder="Ej. 1818" />
+            <x-field name="pin" label="PIN del perfil" maxlength="20" data-secret="pin"
+                     :placeholder="$subscription->exists && $subscription->pin ? \App\Support\Mask::SECRET.' guardado' : 'Ej. 1818'"
+                     :hint="$subscription->exists && $subscription->pin ? 'Déjalo vacío para no cambiarlo.' : null" />
+            @if ($hasSecrets)
+                <div class="sm:col-span-3" data-secrets data-secrets-url="{{ route('admin.subscriptions.secrets', $subscription) }}">
+                    <button type="button" data-reveal class="text-xs font-medium text-accent hover:underline">👁 Mostrar clave y PIN guardados</button>
+                </div>
+            @endif
         </div>
 
         <div class="grid gap-5 border-t border-ink-700 pt-5 sm:grid-cols-2">
@@ -52,6 +65,4 @@
             <a href="{{ route('admin.subscriptions.index') }}" class="btn-ghost">Volver</a>
         </div>
     </form>
-
-    <script type="application/json" id="known-accounts">@json($accounts)</script>
 </x-layouts.admin>

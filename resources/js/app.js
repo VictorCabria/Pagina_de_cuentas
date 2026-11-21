@@ -340,33 +340,82 @@ if (orderForm) {
     });
 }
 
-// Admin → Cuentas: sugiere correos ya usados en la plataforma, llena la clave y suma meses al vencimiento
+// Pide JSON al panel; null si falla (sin sesión, límite de consultas, sin conexión).
+const getJson = async (url, params = {}) => {
+    const target = new URL(url);
+    target.search = new URLSearchParams(params);
+    try {
+        const response = await fetch(target, { headers: { Accept: 'application/json' } });
+        return response.ok ? await response.json() : null;
+    } catch {
+        return null;
+    }
+};
+
+// Panel · "Mostrar": los datos sensibles llegan enmascarados y los reales se piden al pulsar.
+// En textos se muestran (y "Ocultar" los vuelve a tapar); en campos vacíos del formulario se llenan.
+document.querySelectorAll('[data-secrets] [data-reveal]').forEach((button) => {
+    const box = button.closest('[data-secrets]');
+    const scope = box.closest('form') ?? box;
+    const label = button.textContent;
+    let shown = false;
+    button.addEventListener('click', async () => {
+        const targets = [...scope.querySelectorAll('[data-secret]')].filter((el) => !(el instanceof HTMLInputElement) || !el.value);
+        if (shown) {
+            targets.forEach((el) => { el.textContent = el.dataset.masked; });
+            button.textContent = label;
+            shown = false;
+            return;
+        }
+        const data = await getJson(box.dataset.secretsUrl);
+        if (!data) {
+            button.textContent = 'No se pudo mostrar, intenta de nuevo';
+            return;
+        }
+        targets.forEach((el) => {
+            const value = data[el.dataset.secret];
+            if (!value) return;
+            if (el instanceof HTMLInputElement) {
+                el.value = value;
+            } else {
+                el.dataset.masked = el.textContent;
+                el.textContent = value;
+            }
+        });
+        if (box.closest('form')) {
+            button.remove();
+        } else {
+            button.textContent = '🙈 Ocultar';
+            shown = true;
+        }
+    });
+});
+
+// Admin → Cuentas: sugiere correos ya usados en la plataforma, llena la clave y suma meses al vencimiento.
+// Los correos y la clave se piden al servidor al usarse: la página no trae ninguno.
 const subscriptionForm = document.querySelector('[data-subscription-form]');
 if (subscriptionForm) {
-    const known = JSON.parse(document.getElementById('known-accounts')?.textContent || '{}');
     const service = subscriptionForm.elements.service_id;
     const email = subscriptionForm.elements.account_email;
     const password = subscriptionForm.elements.account_password;
     const list = document.getElementById('account-emails');
+    let emails = [];
+    let loadedFor = null;
 
-    const fillList = () => {
-        list.replaceChildren(...(known[service.value] ?? []).map((value) => new Option(value, value)));
+    const loadEmails = async () => {
+        if (!service.value || loadedFor === service.value) return;
+        loadedFor = service.value;
+        emails = (await getJson(subscriptionForm.dataset.emailsUrl, { service_id: service.value })) ?? [];
+        list.replaceChildren(...emails.map((value) => new Option(value, value)));
     };
-    service.addEventListener('change', fillList);
-    fillList();
+    service.addEventListener('change', () => { loadedFor = null; list.replaceChildren(); });
+    email.addEventListener('focus', loadEmails);
 
-    // La clave se pide al servidor solo para el correo elegido (la página no trae ninguna).
     email.addEventListener('change', async () => {
         const value = email.value.trim();
-        if (password.value || !(known[service.value] ?? []).includes(value)) return;
-        const url = new URL(subscriptionForm.dataset.passwordUrl);
-        url.search = new URLSearchParams({ service_id: service.value, email: value });
-        try {
-            const response = await fetch(url, { headers: { Accept: 'application/json' } });
-            if (!response.ok) return;
-            const { password: saved } = await response.json();
-            if (saved && !password.value) password.value = saved;
-        } catch { /* sin conexión: se escribe a mano */ }
+        if (password.value || !emails.includes(value)) return;
+        const saved = await getJson(subscriptionForm.dataset.passwordUrl, { service_id: service.value, email: value });
+        if (saved?.password && !password.value) password.value = saved.password;
     });
 
     const startsOn = subscriptionForm.elements.starts_on;

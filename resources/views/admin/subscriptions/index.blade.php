@@ -78,11 +78,12 @@
                                             <a href="{{ route('admin.orders.show', $subscription->order) }}" class="block text-[11px] text-mist-400 hover:text-accent">Orden {{ $subscription->order->number() }}</a>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3">
+                                    <td class="px-4 py-3" data-secrets data-secrets-url="{{ route('admin.subscriptions.secrets', $subscription) }}">
                                         @if ($subscription->account_email)
-                                            <p class="text-mist-100">{{ $subscription->account_email }}</p>
+                                            {{-- Enmascarado: los datos reales solo llegan al pulsar "Mostrar" --}}
+                                            <p class="text-mist-100" data-secret="email">{{ \App\Support\Mask::email($subscription->account_email) }}</p>
                                             @if ($subscription->account_password)
-                                                <p class="mt-0.5 text-xs">Clave: <span class="cursor-help font-mono text-mist-300 blur-[3px] transition hover:blur-none" title="Pasa el mouse para ver">{{ $subscription->account_password }}</span></p>
+                                                <p class="mt-0.5 text-xs">Clave: <span class="font-mono text-mist-300" data-secret="password">{{ \App\Support\Mask::SECRET }}</span></p>
                                             @endif
                                             @if ($subscription->profile_name || $subscription->pin)
                                                 <p class="mt-1.5 flex flex-wrap gap-1.5">
@@ -90,10 +91,11 @@
                                                         <span class="inline-flex items-center gap-1 rounded-md bg-accent-soft px-2 py-0.5 text-xs text-accent">👤 {{ $subscription->profile_name }}</span>
                                                     @endif
                                                     @if ($subscription->pin)
-                                                        <span class="inline-flex items-center gap-1 rounded-md bg-ink-700 px-2 py-0.5 text-xs text-mist-100">PIN <span class="font-mono font-semibold">{{ $subscription->pin }}</span></span>
+                                                        <span class="inline-flex items-center gap-1 rounded-md bg-ink-700 px-2 py-0.5 text-xs text-mist-100">PIN <span class="font-mono font-semibold" data-secret="pin">{{ \App\Support\Mask::SECRET }}</span></span>
                                                     @endif
                                                 </p>
                                             @endif
+                                            <button type="button" data-reveal class="mt-1.5 text-xs font-medium text-accent hover:underline">👁 Mostrar</button>
                                         @else
                                             <a href="{{ route('admin.subscriptions.edit', $subscription) }}" class="inline-flex items-center gap-1 rounded-md border border-dashed border-amber-400/50 px-2.5 py-1 text-xs font-medium text-amber-300 hover:bg-amber-500/10">
                                                 + Poner correo
@@ -117,7 +119,7 @@
                                     <td class="px-4 py-3">
                                         <div class="flex flex-wrap justify-end gap-1">
                                             @if ($subscription->customer_phone && $subscription->account_email)
-                                                <a href="https://wa.me/{{ $subscription->customer_phone }}?text={{ rawurlencode($subscription->credentialsMessage()) }}" target="_blank" rel="noopener"
+                                                <a href="{{ route('admin.subscriptions.send-credentials', $subscription) }}" target="_blank" rel="noopener"
                                                    class="btn px-2.5 py-1 text-xs bg-[#25d366]/15 text-[#4ade80] hover:bg-[#25d366]/25" title="Enviarle al cliente sus datos de acceso">Enviar datos</a>
                                             @endif
                                             <form method="POST" action="{{ route('admin.subscriptions.renew', $subscription) }}">

@@ -43,7 +43,7 @@
                                 <span class="flex items-center gap-2">
                                     <x-service-logo :service="$subscription->service" class="size-6 rounded-md text-[10px]" />
                                     <span class="text-mist-100">{{ $subscription->service->name }}</span>
-                                    <span class="text-xs">{{ $subscription->account_email ?? 'sin correo' }}</span>
+                                    <span class="text-xs">{{ \App\Support\Mask::email($subscription->account_email) ?? 'sin correo' }}</span>
                                 </span>
                                 <span class="flex items-center gap-2">
                                     <x-badge :color="$status['color']">{{ $status['label'] }}</x-badge>

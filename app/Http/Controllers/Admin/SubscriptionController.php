@@ -81,7 +81,16 @@ class SubscriptionController extends Controller
 
     public function update(Request $request, Subscription $subscription): RedirectResponse
     {
-        $subscription->update($this->validated($request));
+        $data = $this->validated($request);
+
+        // La clave y el PIN no vienen en el formulario: vacíos significa "dejar los guardados".
+        foreach (['account_password', 'pin'] as $secret) {
+            if (blank($data[$secret] ?? null)) {
+                unset($data[$secret]);
+            }
+        }
+
+        $subscription->update($data);
 
         return redirect()->route('admin.subscriptions.index', ['servicio' => $subscription->service_id])
             ->with('status', "Cuenta de {$subscription->customer_name} actualizada.");
@@ -117,6 +126,41 @@ class SubscriptionController extends Controller
     }
 
     /**
+     * Datos de acceso reales de una cuenta, solo cuando se pulsa "Mostrar".
+     * La página los lleva enmascarados.
+     */
+    public function secrets(Subscription $subscription): JsonResponse
+    {
+        return response()->json([
+            'email' => $subscription->account_email,
+            'password' => $subscription->account_password,
+            'pin' => $subscription->pin,
+        ]);
+    }
+
+    /**
+     * Abre WhatsApp con los datos de acceso para el cliente. El mensaje se arma aquí,
+     * al pulsar el botón, para que la clave no viaje en los enlaces del listado.
+     */
+    public function sendCredentials(Subscription $subscription): RedirectResponse
+    {
+        abort_if(blank($subscription->customer_phone) || blank($subscription->account_email), 404);
+
+        return redirect()->away('https://wa.me/'.$subscription->customer_phone.'?text='.rawurlencode($subscription->credentialsMessage()));
+    }
+
+    /** Correos ya usados en una plataforma, para sugerirlos mientras se escribe. */
+    public function knownEmails(Request $request): JsonResponse
+    {
+        $serviceId = $request->validate(['service_id' => ['required', 'integer']])['service_id'];
+
+        return response()->json(
+            Subscription::where('service_id', $serviceId)->whereNotNull('account_email')
+                ->latest('updated_at')->pluck('account_email')->unique()->values(),
+        );
+    }
+
+    /**
      * Clave guardada de un correo ya usado en la plataforma, para autocompletarla.
      * Se pide de una en una: la página del formulario nunca lleva las contraseñas.
      */
@@ -144,16 +188,9 @@ class SubscriptionController extends Controller
      */
     private function formData(Subscription $subscription): array
     {
-        // Solo los correos ya usados por plataforma (sin claves), para sugerirlos.
-        $accounts = Subscription::whereNotNull('account_email')->latest('updated_at')
-            ->get(['service_id', 'account_email'])
-            ->groupBy('service_id')
-            ->map(fn ($rows) => $rows->pluck('account_email')->unique()->values());
-
         return [
             'subscription' => $subscription,
             'services' => Service::ordered()->get(),
-            'accounts' => $accounts,
         ];
     }
 

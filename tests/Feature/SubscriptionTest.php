@@ -107,7 +107,65 @@ class SubscriptionTest extends TestCase
         $this->assertStringContainsString('Tu perfil: PIXEL', $subscription->credentialsMessage());
         $this->assertStringContainsString('PIN de tu perfil: 1818', $subscription->credentialsMessage());
 
-        $this->get(route('admin.subscriptions.index'))->assertSeeInOrder(['cuenta@ejemplo.com', 'PIXEL', 'PIN', '1818']);
+        $this->get(route('admin.subscriptions.index'))->assertSeeInOrder(['cu****@ejemplo.com', 'PIXEL', 'PIN']);
+    }
+
+    public function test_listing_masks_credentials_and_reveals_them_only_on_demand(): void
+    {
+        $subscription = Subscription::factory()->create([
+            'service_id' => $this->service('netflix')->id,
+            'customer_phone' => '573001234567',
+            'account_email' => 'fiera152022@gmail.com',
+            'account_password' => 'Secreta123',
+            'pin' => '1818',
+        ]);
+
+        $this->get(route('admin.subscriptions.index'))->assertOk()
+            ->assertSee('fi*********@gmail.com')
+            ->assertDontSee('fiera152022')
+            ->assertDontSee('Secreta123')
+            ->assertDontSee('1818')
+            ->assertSee(route('admin.subscriptions.send-credentials', $subscription), false);
+
+        $this->getJson(route('admin.subscriptions.secrets', $subscription))->assertOk()
+            ->assertExactJson(['email' => 'fiera152022@gmail.com', 'password' => 'Secreta123', 'pin' => '1818']);
+
+        $redirect = $this->get(route('admin.subscriptions.send-credentials', $subscription))->assertRedirect()->headers->get('Location');
+        $this->assertStringStartsWith('https://wa.me/573001234567?text=', $redirect);
+        $this->assertStringContainsString(rawurlencode('Secreta123'), $redirect);
+    }
+
+    public function test_guests_cannot_reveal_credentials(): void
+    {
+        $subscription = Subscription::factory()->create(['account_email' => 'cuenta@ejemplo.com', 'account_password' => 'Secreta123']);
+        auth()->logout();
+
+        $this->getJson(route('admin.subscriptions.secrets', $subscription))->assertUnauthorized();
+        $this->get(route('admin.subscriptions.send-credentials', $subscription))->assertRedirect(route('login'));
+    }
+
+    public function test_edit_form_does_not_carry_the_password_or_pin_and_keeps_them_when_left_empty(): void
+    {
+        $subscription = Subscription::factory()->create([
+            'service_id' => $this->service('netflix')->id, 'account_email' => 'cuenta@ejemplo.com',
+            'account_password' => 'Secreta123', 'pin' => '1818',
+        ]);
+
+        $this->get(route('admin.subscriptions.edit', $subscription))->assertOk()
+            ->assertDontSee('Secreta123')
+            ->assertDontSee('1818')
+            ->assertSee('Déjala vacía para no cambiarla.');
+
+        $this->put(route('admin.subscriptions.update', $subscription), [
+            'service_id' => $subscription->service_id, 'customer_name' => 'Laura Editada',
+            'account_email' => 'cuenta@ejemplo.com', 'account_password' => '', 'pin' => '',
+            'starts_on' => $subscription->starts_on->toDateString(), 'expires_on' => $subscription->expires_on->toDateString(),
+        ])->assertSessionHasNoErrors();
+
+        $subscription->refresh();
+        $this->assertSame('Laura Editada', $subscription->customer_name);
+        $this->assertSame('Secreta123', $subscription->account_password);
+        $this->assertSame('1818', $subscription->pin);
     }
 
     public function test_admin_adds_an_account_manually(): void
@@ -171,7 +229,7 @@ class SubscriptionTest extends TestCase
         $this->get(route('admin.subscriptions.index'))->assertRedirect(route('login'));
     }
 
-    public function test_form_suggests_emails_but_never_sends_passwords(): void
+    public function test_form_asks_for_known_emails_and_passwords_one_at_a_time(): void
     {
         $netflix = $this->service('netflix');
         Subscription::factory()->create([
@@ -179,8 +237,14 @@ class SubscriptionTest extends TestCase
         ]);
 
         $this->get(route('admin.subscriptions.create'))->assertOk()
-            ->assertSee('cuenta@ejemplo.com')
+            ->assertDontSee('cuenta@ejemplo.com')
             ->assertDontSee('Secreta123');
+
+        $this->getJson(route('admin.subscriptions.known-emails', ['service_id' => $netflix->id]))
+            ->assertOk()
+            ->assertExactJson(['cuenta@ejemplo.com']);
+        $this->getJson(route('admin.subscriptions.known-emails', ['service_id' => $this->service('spotify')->id]))
+            ->assertExactJson([]);
 
         $this->getJson(route('admin.subscriptions.known-password', ['service_id' => $netflix->id, 'email' => 'cuenta@ejemplo.com']))
             ->assertOk()
