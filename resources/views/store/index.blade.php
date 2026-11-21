@@ -163,7 +163,7 @@
                 ['¿Es seguro comprar aquí?', 'Sí. Cada plan tiene garantía durante todo el periodo: si el acceso deja de funcionar, lo reponemos sin costo.'],
                 ['¿Cuánto tarda la entrega?', 'Normalmente unos minutos después de confirmar tu pago, dentro del horario de atención.'],
                 ['¿Qué tasa usan para los precios en pesos?', 'La tasa de mercado del dólar del día (la misma que ves en Google), actualizada cada hora. Puedes ver los precios en COP o USD con el selector de arriba.'],
-                ['¿Cómo pago?', 'Al pedir por WhatsApp te compartimos los medios de pago disponibles en Colombia y para pagos en dólares.'],
+                ['¿Cómo pago?', 'Al pedir por WhatsApp te compartimos los medios de pago disponibles en Colombia y Panamá.'],
                 ['¿Puedo renovar mi plan?', 'Sí. Escríbenos antes de que termine y lo renovamos manteniendo tu perfil.'],
             ] as [$question, $answer])
                 <details class="group rounded-2xl bg-shop-card px-6 py-5 ring-1 ring-white/10 open:ring-cyan-500/50">
