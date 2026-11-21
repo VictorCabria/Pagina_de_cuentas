@@ -374,6 +374,35 @@ if (subscriptionForm) {
     });
 }
 
+// Panel · formulario de compra: botones de meses y aviso "Vence el …" (fecha de compra + meses)
+const purchaseForm = document.querySelector('[data-purchase-form]');
+if (purchaseForm) {
+    const purchasedOn = purchaseForm.elements.purchased_on;
+    const months = purchaseForm.elements.duration_months;
+    const preview = purchaseForm.querySelector('[data-expiry-preview]');
+    const update = () => {
+        const count = Number(months.value);
+        if (!purchasedOn.value || !Number.isInteger(count) || count < 1) {
+            preview.textContent = '';
+            return;
+        }
+        const date = new Date(`${purchasedOn.value}T00:00:00`);
+        const day = date.getDate();
+        date.setMonth(date.getMonth() + count);
+        if (date.getDate() !== day) date.setDate(0); // 31 ene + 1 mes = 28/29 feb
+        const text = date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        preview.textContent = `Vence el ${text}.`;
+    };
+    purchaseForm.querySelectorAll('[data-set-months]').forEach((button) => {
+        button.addEventListener('click', () => {
+            months.value = button.dataset.setMonths;
+            update();
+        });
+    });
+    [purchasedOn, months].forEach((input) => input.addEventListener('input', update));
+    update();
+}
+
 // Panel: campana de notificaciones y aviso flotante de cuentas por vencer.
 // El aviso sale en cualquier pantalla mientras haya avisos sin leer, y la campana
 // se actualiza sola cada 30 s (sin recargar) cuando llega uno nuevo.

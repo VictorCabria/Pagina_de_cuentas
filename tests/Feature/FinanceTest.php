@@ -149,4 +149,47 @@ class FinanceTest extends TestCase
 
         $this->assertDatabaseCount('purchases', 0);
     }
+
+    public function test_purchase_expires_the_given_months_after_the_purchase_date(): void
+    {
+        $this->travelTo('2026-11-20 10:00');
+        $service = Service::create(['name' => 'Netflix']);
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('admin.purchases.store'), [
+            'service_id' => $service->id, 'amount' => '20000', 'currency' => 'COP',
+            'purchased_on' => '2026-11-20', 'duration_months' => '6',
+        ])->assertSessionHasNoErrors();
+
+        $purchase = Purchase::sole();
+        $this->assertSame(6, $purchase->duration_months);
+        $this->assertSame('2027-05-20', $purchase->expires_on->toDateString());
+        $this->get(route('admin.purchases.index'))->assertSee('20 may. 2027')->assertSee('6 meses');
+
+        // Al cambiar la fecha de compra se recalcula, sin pasarse de mes (31 ene + 1 = 28 feb).
+        $this->put(route('admin.purchases.update', $purchase), [
+            'service_id' => $service->id, 'amount' => '20000', 'currency' => 'COP',
+            'purchased_on' => '2027-01-31', 'duration_months' => '1',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('2027-02-28', $purchase->fresh()->expires_on->toDateString());
+
+        // Sin meses (otro gasto) no vence.
+        $this->put(route('admin.purchases.update', $purchase), [
+            'description' => 'Publicidad', 'amount' => '20000', 'currency' => 'COP', 'purchased_on' => '2026-11-20',
+        ])->assertSessionHasNoErrors();
+        $this->assertNull($purchase->fresh()->duration_months);
+        $this->assertNull($purchase->fresh()->expires_on);
+    }
+
+    public function test_purchase_duration_must_be_between_one_and_thirty_six_months(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('admin.purchases.store'), [
+            'description' => 'Cuenta', 'amount' => '20000', 'currency' => 'COP',
+            'purchased_on' => today()->toDateString(), 'duration_months' => '0',
+        ])->assertSessionHasErrors('duration_months');
+
+        $this->assertDatabaseCount('purchases', 0);
+    }
 }

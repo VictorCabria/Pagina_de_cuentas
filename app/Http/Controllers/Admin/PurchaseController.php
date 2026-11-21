@@ -10,6 +10,7 @@ use App\Models\Setting;
 use App\Support\Finances;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -87,14 +88,19 @@ class PurchaseController extends Controller
             'amount' => ['required', 'numeric', 'gt:0', 'max:9999999999'],
             'currency' => ['required', Rule::enum(Currency::class)],
             'purchased_on' => ['required', 'date'],
+            'duration_months' => ['nullable', 'integer', 'min:1', 'max:36'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ], [
             'service_id.required_without' => 'Elige la plataforma o escribe qué compraste.',
             'amount.gt' => 'El monto debe ser mayor que cero.',
+            'duration_months.min' => 'La cuenta debe durar al menos 1 mes.',
+            'duration_months.max' => 'Como máximo 36 meses.',
         ]);
 
         // Sin plataforma elegida es "otro gasto": se borra la que tuviera antes.
         $data['service_id'] ??= null;
+        $data['duration_months'] = isset($data['duration_months']) ? (int) $data['duration_months'] : null;
+        $data['expires_on'] = Purchase::expiryFor(Carbon::parse($data['purchased_on']), $data['duration_months']);
 
         return $data;
     }

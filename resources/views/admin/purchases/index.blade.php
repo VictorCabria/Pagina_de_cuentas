@@ -35,6 +35,7 @@
                         <tr>
                             <th class="px-4 py-3">Fecha</th>
                             <th class="px-4 py-3">Plataforma</th>
+                            <th class="px-4 py-3">Vence</th>
                             <th class="hidden px-4 py-3 md:table-cell">Detalle</th>
                             <th class="px-4 py-3 text-right">Monto</th>
                             <th class="px-4 py-3 text-right">Acciones</th>
@@ -45,6 +46,24 @@
                             <tr>
                                 <td class="px-4 py-3 whitespace-nowrap">{{ $purchase->purchased_on->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3 font-medium text-mist-100">{{ $purchase->label() }}</td>
+                                <td class="px-4 py-3 text-xs whitespace-nowrap">
+                                    @if ($purchase->expires_on)
+                                        @php($daysLeft = $purchase->daysLeft())
+                                        <p class="text-mist-100">{{ $purchase->expires_on->locale('es')->isoFormat('D MMM YYYY') }}</p>
+                                        <p @class(['mt-0.5', 'text-rose-300' => $daysLeft < 0, 'text-pink-300' => $daysLeft >= 0 && $daysLeft <= \App\Models\Subscription::EXPIRING_DAYS])>
+                                            {{ $purchase->durationLabel() }} ·
+                                            @if ($daysLeft < 0)
+                                                venció hace {{ abs($daysLeft) }} {{ abs($daysLeft) === 1 ? 'día' : 'días' }}
+                                            @elseif ($daysLeft === 0)
+                                                vence hoy
+                                            @else
+                                                quedan {{ $daysLeft }} {{ $daysLeft === 1 ? 'día' : 'días' }}
+                                            @endif
+                                        </p>
+                                    @else
+                                        <span class="text-mist-400">—</span>
+                                    @endif
+                                </td>
                                 <td class="hidden max-w-xs px-4 py-3 text-xs md:table-cell">
                                     {{ $purchase->service ? $purchase->description : '' }}
                                     @if ($purchase->notes)
@@ -73,7 +92,7 @@
                     </tbody>
                     <tfoot class="bg-ink-900 font-semibold">
                         <tr>
-                            <td class="px-4 py-3 text-mist-100" colspan="2">Total</td>
+                            <td class="px-4 py-3 text-mist-100" colspan="3">Total</td>
                             <td class="hidden md:table-cell"></td>
                             <td class="px-4 py-3 text-right whitespace-nowrap text-mist-100">{{ $currency->format($total) }}</td>
                             <td></td>
