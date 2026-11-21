@@ -16,8 +16,8 @@
     <title>{{ $title ? $title.' · '.$storeName : $storeName.' · Suscripciones premium al mejor precio' }}</title>
     <meta name="description" content="{{ $description ?? 'Netflix, Spotify, ChatGPT y más plataformas premium a precios bajos, con garantía y entrega rápida.' }}">
     <meta name="theme-color" content="#0a0f1f">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="alternate icon" href="/favicon.ico">
+    <link rel="icon" href="/images/brand/favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <x-fonts />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -40,8 +40,8 @@
     <header class="sticky top-0 z-40 border-b border-white/10 bg-shop-bg/85 backdrop-blur-md">
         <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
             <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2.5">
-                <x-brand-mark class="size-10" />
-                <span class="hidden font-display text-lg font-bold tracking-tight text-white sm:block">{{ $storeName }}</span>
+                <x-brand-mark class="size-10 sm:hidden" />
+                <x-brand-logo class="hidden h-10 sm:block" />
             </a>
 
             <form action="{{ route('home') }}#catalogo" class="relative min-w-0 flex-1 md:max-w-md" role="search">
@@ -99,7 +99,7 @@
     <footer class="mt-24 border-t border-white/10 bg-shop-deep text-cyan-100/70">
         <div class="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-3">
             <div>
-                <p class="flex items-center gap-2.5 font-display text-xl font-bold text-white"><x-brand-mark class="size-9" /> {{ $storeName }}</p>
+                <x-brand-logo class="h-12" />
                 <p class="mt-3 max-w-xs text-sm">Plataformas de streaming, música, IA y productividad a precios accesibles, con garantía durante todo el periodo.</p>
             </div>
             <div class="text-sm">

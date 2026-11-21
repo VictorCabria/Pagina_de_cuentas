@@ -23,8 +23,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
     <title>{{ $title }} · Panel de {{ \App\Models\Setting::get('store_name') }}</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="alternate icon" href="/favicon.ico">
+    <link rel="icon" href="/images/brand/favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <x-fonts />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -33,9 +33,8 @@
     <div class="lg:flex">
         <aside class="border-b border-ink-700 bg-ink-900 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:border-r lg:border-b-0">
             <div class="flex items-center justify-between px-6 py-5 lg:block">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5 font-display text-base font-bold text-mist-100">
-                    <x-brand-mark class="size-9" />
-                    {{ \App\Models\Setting::get('store_name') }}
+                <a href="{{ route('admin.dashboard') }}" class="flex items-center">
+                    <x-brand-logo class="h-10" />
                 </a>
                 <a href="{{ route('home') }}" target="_blank" class="text-xs text-mist-400 hover:text-accent lg:mt-2 lg:block">Ver tienda ↗</a>
             </div>

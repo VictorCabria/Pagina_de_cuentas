@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
     <title>Iniciar sesión · Panel</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="alternate icon" href="/favicon.ico">
+    <link rel="icon" href="/images/brand/favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <x-fonts />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -15,9 +15,8 @@
     <div class="spotlight pointer-events-none fixed inset-0"></div>
 
     <main class="relative w-full max-w-sm">
-        <p class="mb-8 flex items-center justify-center gap-2.5 font-display text-lg font-bold text-mist-100">
-            <x-brand-mark class="size-10" />
-            {{ \App\Models\Setting::get('store_name') }}
+        <p class="mb-8 flex justify-center">
+            <x-brand-logo class="h-16" />
         </p>
 
         <form method="POST" action="{{ route('login') }}" class="card space-y-5 bg-ink-900/80 backdrop-blur">
