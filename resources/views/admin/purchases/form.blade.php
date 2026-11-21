@@ -21,7 +21,7 @@
                       :options="collect(\App\Enums\Currency::cases())->mapWithKeys(fn ($currency) => [$currency->value => $currency->label()])" />
         </div>
 
-        <div class="grid gap-5 sm:grid-cols-2">
+        <div class="grid items-start gap-5 sm:grid-cols-3">
             <x-field name="purchased_on" label="Fecha de compra" type="date" required :value="$purchase->purchased_on?->toDateString()" />
             <div>
                 <x-field name="duration_months" label="¿Cuántos meses dura?" type="number" min="1" max="36" step="1" inputmode="numeric"
@@ -32,8 +32,16 @@
                     @endforeach
                 </div>
             </div>
+            <div>
+                <p class="form-label">Fecha de vencimiento</p>
+                <div class="form-input flex cursor-not-allowed items-center gap-2 border-dashed bg-ink-900/60 select-none" aria-live="polite">
+                    <span aria-hidden="true">🔒</span>
+                    <span data-expiry-preview data-empty="Se calcula sola"
+                          @class(['font-medium', 'text-accent' => $purchase->expires_on, 'text-mist-400' => ! $purchase->expires_on])>{{ $purchase->expires_on?->locale('es')->isoFormat('D [de] MMMM [de] YYYY') ?? 'Se calcula sola' }}</span>
+                </div>
+                <p class="form-hint">Se calcula sola: fecha de compra + meses.</p>
+            </div>
         </div>
-        <p class="-mt-2 text-sm font-medium text-accent" data-expiry-preview></p>
 
         <x-field name="notes" label="Notas" type="textarea" rows="2" :value="$purchase->notes" placeholder="Ej. proveedor, método de pago…" />
 

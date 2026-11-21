@@ -374,7 +374,7 @@ if (subscriptionForm) {
     });
 }
 
-// Panel · formulario de compra: botones de meses y aviso "Vence el …" (fecha de compra + meses)
+// Panel · formulario de compra: botones de meses y campo "Fecha de vencimiento" (fecha de compra + meses)
 const purchaseForm = document.querySelector('[data-purchase-form]');
 if (purchaseForm) {
     const purchasedOn = purchaseForm.elements.purchased_on;
@@ -382,16 +382,18 @@ if (purchaseForm) {
     const preview = purchaseForm.querySelector('[data-expiry-preview]');
     const update = () => {
         const count = Number(months.value);
-        if (!purchasedOn.value || !Number.isInteger(count) || count < 1) {
-            preview.textContent = '';
+        const empty = !purchasedOn.value || !Number.isInteger(count) || count < 1;
+        preview.classList.toggle('text-accent', !empty);
+        preview.classList.toggle('text-mist-400', empty);
+        if (empty) {
+            preview.textContent = preview.dataset.empty;
             return;
         }
         const date = new Date(`${purchasedOn.value}T00:00:00`);
         const day = date.getDate();
         date.setMonth(date.getMonth() + count);
         if (date.getDate() !== day) date.setDate(0); // 31 ene + 1 mes = 28/29 feb
-        const text = date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        preview.textContent = `Vence el ${text}.`;
+        preview.textContent = date.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
     };
     purchaseForm.querySelectorAll('[data-set-months]').forEach((button) => {
         button.addEventListener('click', () => {
