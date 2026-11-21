@@ -352,42 +352,78 @@ const getJson = async (url, params = {}) => {
     }
 };
 
-// Panel · "Mostrar": los datos sensibles llegan enmascarados y los reales se piden al pulsar.
-// En textos se muestran (y "Ocultar" los vuelve a tapar); en campos vacíos del formulario se llenan.
-document.querySelectorAll('[data-secrets] [data-reveal]').forEach((button) => {
-    const box = button.closest('[data-secrets]');
-    const scope = box.closest('form') ?? box;
-    const label = button.textContent;
+// Panel · datos sensibles: llegan enmascarados y los reales se piden al servidor solo al usarlos.
+// El ojo los muestra u oculta; copiar los manda al portapapeles sin mostrarlos.
+const secretsCache = new Map();
+const loadSecrets = (url) => {
+    if (!secretsCache.has(url)) {
+        secretsCache.set(url, getJson(url).then((data) => {
+            if (!data) secretsCache.delete(url); // reintenta en el próximo clic
+            return data;
+        }));
+    }
+    return secretsCache.get(url);
+};
+const flashError = (button, message) => {
+    button.title = message;
+    button.classList.add('text-rose-400');
+    setTimeout(() => button.classList.remove('text-rose-400'), 1500);
+};
+const swapIcons = (button, active, [idle, done]) => {
+    button.querySelector(`[${idle}]`)?.classList.toggle('hidden', active);
+    button.querySelector(`[${done}]`)?.classList.toggle('hidden', !active);
+};
+
+document.querySelectorAll('[data-secrets]').forEach((box) => {
+    const url = box.dataset.secretsUrl;
+    const targets = [...box.querySelectorAll('[data-secret]')];
+    const eye = box.querySelector('[data-reveal]');
     let shown = false;
-    button.addEventListener('click', async () => {
-        const targets = [...scope.querySelectorAll('[data-secret]')].filter((el) => !(el instanceof HTMLInputElement) || !el.value);
+
+    eye?.addEventListener('click', async () => {
         if (shown) {
-            targets.forEach((el) => { el.textContent = el.dataset.masked; });
-            button.textContent = label;
-            shown = false;
-            return;
-        }
-        const data = await getJson(box.dataset.secretsUrl);
-        if (!data) {
-            button.textContent = 'No se pudo mostrar, intenta de nuevo';
-            return;
-        }
-        targets.forEach((el) => {
-            const value = data[el.dataset.secret];
-            if (!value) return;
-            if (el instanceof HTMLInputElement) {
-                el.value = value;
-            } else {
-                el.dataset.masked = el.textContent;
-                el.textContent = value;
-            }
-        });
-        if (box.closest('form')) {
-            button.remove();
+            targets.forEach((el) => {
+                if (el instanceof HTMLInputElement) {
+                    if (el.value === el.dataset.revealed) el.value = '';
+                } else {
+                    el.textContent = el.dataset.masked;
+                }
+            });
         } else {
-            button.textContent = '🙈 Ocultar';
-            shown = true;
+            const data = await loadSecrets(url);
+            if (!data) return flashError(eye, 'No se pudo cargar, intenta de nuevo');
+            targets.forEach((el) => {
+                const value = data[el.dataset.secret];
+                if (!value) return;
+                if (el instanceof HTMLInputElement) {
+                    if (el.value) return; // no pisa lo que se escribió
+                    el.value = value;
+                    el.dataset.revealed = value;
+                } else {
+                    el.dataset.masked ??= el.textContent;
+                    el.textContent = value;
+                }
+            });
         }
+        shown = !shown;
+        eye.setAttribute('aria-pressed', String(shown));
+        eye.title = shown ? 'Ocultar' : 'Ver datos';
+        swapIcons(eye, shown, ['data-icon-show', 'data-icon-hide']);
+    });
+
+    box.querySelectorAll('[data-copy]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const data = await loadSecrets(url);
+            const value = data?.[button.dataset.copy];
+            try {
+                if (!value) throw new Error();
+                await navigator.clipboard.writeText(value);
+            } catch {
+                return flashError(button, 'No se pudo copiar');
+            }
+            swapIcons(button, true, ['data-icon-idle', 'data-icon-done']);
+            setTimeout(() => swapIcons(button, false, ['data-icon-idle', 'data-icon-done']), 1500);
+        });
     });
 });
 

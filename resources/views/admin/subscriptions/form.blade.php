@@ -30,20 +30,37 @@
                          placeholder="correo@ejemplo.com" hint="Si eliges un correo que ya usaste en esta plataforma, se llena la contraseña." />
                 <datalist id="account-emails"></datalist>
             </div>
-            {{-- La clave y el PIN guardados no viajan en la página: se piden con "Mostrar" --}}
-            @php($hasSecrets = $subscription->exists && ($subscription->account_password || $subscription->pin))
-            <x-field name="account_password" label="Contraseña" autocomplete="off" data-secret="password"
-                     :placeholder="$subscription->exists && $subscription->account_password ? \App\Support\Mask::SECRET.' guardada' : null"
-                     :hint="$subscription->exists && $subscription->account_password ? 'Déjala vacía para no cambiarla.' : null" />
-            <x-field name="profile_name" label="Perfil" :value="$subscription->profile_name" maxlength="40" placeholder="Ej. Perfil 3, PIXEL" />
-            <x-field name="pin" label="PIN del perfil" maxlength="20" data-secret="pin"
-                     :placeholder="$subscription->exists && $subscription->pin ? \App\Support\Mask::SECRET.' guardado' : 'Ej. 1818'"
-                     :hint="$subscription->exists && $subscription->pin ? 'Déjalo vacío para no cambiarlo.' : null" />
-            @if ($hasSecrets)
-                <div class="sm:col-span-3" data-secrets data-secrets-url="{{ route('admin.subscriptions.secrets', $subscription) }}">
-                    <button type="button" data-reveal class="text-xs font-medium text-accent hover:underline">👁 Mostrar clave y PIN guardados</button>
+            {{-- La clave y el PIN guardados no viajan en la página: el ojo los pide al servidor --}}
+            @foreach ([
+                ['name' => 'account_password', 'label' => 'Contraseña', 'saved' => $subscription->account_password, 'placeholder' => null, 'max' => 255, 'kept' => 'Déjala vacía para no cambiarla.'],
+                ['name' => 'pin', 'label' => 'PIN del perfil', 'saved' => $subscription->pin, 'placeholder' => 'Ej. 1818', 'max' => 20, 'kept' => 'Déjalo vacío para no cambiarlo.'],
+            ] as $secret)
+                @php($isSaved = $subscription->exists && filled($secret['saved']))
+                <div @if ($isSaved) data-secrets data-secrets-url="{{ route('admin.subscriptions.secrets', $subscription) }}" @endif
+                     @class(['sm:order-last' => $secret['name'] === 'pin'])>
+                    <label for="{{ $secret['name'] }}" class="form-label">{{ $secret['label'] }}</label>
+                    <div class="relative">
+                        <input id="{{ $secret['name'] }}" name="{{ $secret['name'] }}" type="text" value="{{ old($secret['name']) }}"
+                               maxlength="{{ $secret['max'] }}" autocomplete="off" spellcheck="false"
+                               placeholder="{{ $isSaved ? '•••••• guardada' : $secret['placeholder'] }}"
+                               data-secret="{{ $secret['name'] === 'pin' ? 'pin' : 'password' }}"
+                               @class(['form-input font-mono', 'pr-10' => $isSaved])>
+                        @if ($isSaved)
+                            <button type="button" data-reveal title="Ver la guardada" aria-label="Ver la guardada" aria-pressed="false"
+                                    class="absolute inset-y-0 right-0 grid w-10 place-items-center text-mist-400 transition hover:text-accent">
+                                <x-icon name="eye" class="size-4" data-icon-show /><x-icon name="eye-slash" class="hidden size-4 text-accent" data-icon-hide />
+                            </button>
+                        @endif
+                    </div>
+                    @if ($isSaved)
+                        <p class="form-hint">{{ $secret['kept'] }}</p>
+                    @endif
+                    @error($secret['name'])
+                        <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
+                    @enderror
                 </div>
-            @endif
+            @endforeach
+            <x-field name="profile_name" label="Perfil" :value="$subscription->profile_name" maxlength="40" placeholder="Ej. Perfil 3, PIXEL" />
         </div>
 
         <div class="grid gap-5 border-t border-ink-700 pt-5 sm:grid-cols-2">
